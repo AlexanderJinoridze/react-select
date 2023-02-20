@@ -2,13 +2,23 @@ import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import scrollIntoView from "scroll-into-view-if-needed";
 
-export default function Select(props) {
+export default function Select({
+    options: initialOptions,
+    value,
+    onChange,
+    customOption,
+    placeholder,
+    className,
+    classNamePrefix,
+    withCheck,
+    withSearch,
+}) {
     const [uniqueID, setUniqueID] = useState();
     const [dropDownOn, setDropDownOn] = useState(false);
     const [search, setSearch] = useState("");
     const [options, setOptions] = useState({});
     const [selected, setSelected] = useState("");
-    const [placeholder, setPlaceholder] = useState("");
+    const [selectedItems, setSelectedItems] = useState("");
     const [highlightedOption, setHighlightedOption] = useState("");
 
     const selectRef = useRef(null);
@@ -16,7 +26,7 @@ export default function Select(props) {
     const getSearchResults = () => {
         let searchResults = {};
 
-        for (const [value, label] of Object.entries(props.options)) {
+        for (const [value, label] of Object.entries(initialOptions)) {
             if (label.toLowerCase().includes(search.toLowerCase())) {
                 searchResults[value] = label;
             }
@@ -26,13 +36,13 @@ export default function Select(props) {
     };
 
     const getPlaceholder = () => {
-        if (props.withCheck) {
-            if (!selected.length) return props.placeholder;
-            if (props.withCheck === "single") return options[selected];
+        if (withCheck) {
+            if (!selected.length) return placeholder;
+            if (withCheck === "single") return options[selected];
 
-            return selected.map((value) => props.options[value]).join(", ");
+            return selected.map((value) => initialOptions[value]).join(", ");
         } else {
-            if (!selected) return props.placeholder;
+            if (!selected) return placeholder;
 
             return options[selected];
         }
@@ -42,15 +52,15 @@ export default function Select(props) {
         setSelected(value);
         setDropDownOn(false);
 
-        props.onChange(value);
+        onChange(value);
     };
 
-    const onChange = (value) => {
-        if (props.withCheck === "single") {
+    const handleChange = (value) => {
+        if (withCheck === "single") {
             selectRef.current.querySelectorAll(".select__button")[0].focus();
             setSelected(selected === value ? "" : value);
-            props.onChange(value);
-        } else if (props.withCheck === "multiple") {
+            onChange(value);
+        } else if (withCheck === "multiple") {
             const newSelected = [...selected];
             selectRef.current.querySelectorAll(".select__search")[0].focus();
             if (newSelected.includes(value)) {
@@ -59,7 +69,7 @@ export default function Select(props) {
                 newSelected.push(value);
             }
             setSelected(newSelected);
-            props.onChange(newSelected);
+            onChange(newSelected);
         }
     };
 
@@ -73,8 +83,8 @@ export default function Select(props) {
         const keyCode = e.keyCode;
 
         if (keyCode === 13) {
-            if (props.withCheck) {
-                onChange(highlightedOption);
+            if (withCheck) {
+                handleChange(highlightedOption);
             } else {
                 onClick(highlightedOption);
             }
@@ -109,7 +119,7 @@ export default function Select(props) {
 
             scrollIntoView(
                 selectRef.current.querySelector(
-                    `.${props.classNamePrefix}__menu [data-value=${value}]`
+                    `.${classNamePrefix}__menu [data-value=${value}]`
                 ),
                 {
                     scrollMode: "if-needed",
@@ -136,17 +146,17 @@ export default function Select(props) {
     }, []);
 
     useEffect(() => {
-        setSelected(props.value);
-    }, [props.value]);
+        setSelected(value);
+    }, [value]);
 
     useEffect(() => {
         setOptions(
-            props.withCheck === "multiple" ? getSearchResults() : props.options
+            withCheck === "multiple" ? getSearchResults() : initialOptions
         );
-    }, [props.options]);
+    }, [initialOptions]);
 
     useEffect(() => {
-        setPlaceholder(getPlaceholder());
+        setSelectedItems(getPlaceholder());
     }, [selected]);
 
     useEffect(() => {
@@ -160,13 +170,13 @@ export default function Select(props) {
     const generateOptions = () => {
         if (!Object.keys(options).length) {
             return (
-                <div className={`${props.classNamePrefix}__no-res`}>
+                <div className={`${classNamePrefix}__no-res`}>
                     List is Empty
                 </div>
             );
         }
 
-        if (props.withCheck) {
+        if (withCheck) {
             return Object.keys(options).map((value, index) => {
                 const label = options[value];
                 const labelID = `${uniqueID}__${value}`;
@@ -175,9 +185,9 @@ export default function Select(props) {
                     <label
                         key={index}
                         data-value={value}
-                        className={`${props.classNamePrefix}__menu-item${
+                        className={`${classNamePrefix}__menu-item${
                             value === highlightedOption
-                                ? ` ${props.classNamePrefix}__menu-item--highlighted`
+                                ? ` ${classNamePrefix}__menu-item--highlighted`
                                 : ""
                         }`}
                         onMouseEnter={() => setHighlightedOption(value)}
@@ -188,14 +198,14 @@ export default function Select(props) {
                             tabIndex="-1"
                             type="checkbox"
                             checked={
-                                props.withCheck === "single"
+                                withCheck === "single"
                                     ? selected === value
                                     : selected.includes(value)
                             }
-                            onChange={() => onChange(value)}
+                            onChange={() => handleChange(value)}
                         />
-                        {props.drawOption ? (
-                            props.drawOption(value, label)
+                        {customOption ? (
+                            customOption(value, label)
                         ) : (
                             <div>{label}</div>
                         )}
@@ -210,20 +220,20 @@ export default function Select(props) {
                     <div
                         key={index}
                         data-value={value}
-                        className={`${props.classNamePrefix}__menu-item${
+                        className={`${classNamePrefix}__menu-item${
                             value === highlightedOption
-                                ? ` ${props.classNamePrefix}__menu-item--highlighted`
+                                ? ` ${classNamePrefix}__menu-item--highlighted`
                                 : ""
                         }${
                             value === selected
-                                ? ` ${props.classNamePrefix}__menu-item--selected`
+                                ? ` ${classNamePrefix}__menu-item--selected`
                                 : ""
                         }`}
                         onMouseEnter={() => setHighlightedOption(value)}
                         onClick={() => onClick(value)}
                     >
-                        {props.drawOption ? (
-                            props.drawOption(value, label)
+                        {customOption ? (
+                            customOption(value, label)
                         ) : (
                             <div>{label}</div>
                         )}
@@ -236,7 +246,7 @@ export default function Select(props) {
     const selectButton = () => {
         return (
             <div
-                className={`${props.classNamePrefix}__button`}
+                className={`${classNamePrefix}__button`}
                 tabIndex="0"
                 onMouseUp={() => setDropDownOn(!dropDownOn)}
                 onKeyDown={(e) => {
@@ -249,18 +259,18 @@ export default function Select(props) {
                         onKeyDown(e);
                     }
 
-                    if (!(props.withCheck && dropDownOn)) {
+                    if (!(withCheck && dropDownOn)) {
                         e.keyCode === 13 && setDropDownOn(!dropDownOn);
                     }
                 }}
                 onBlur={onBlur}
             >
-                <div className={`${props.classNamePrefix}__value`}>
-                    <span>{placeholder}</span>
+                <div className={`${classNamePrefix}__value`}>
+                    <span>{selectedItems}</span>
                 </div>
-                <div className={`${props.classNamePrefix}__arrow`}>
+                <div className={`${classNamePrefix}__arrow`}>
                     <span
-                        className={`${props.classNamePrefix}__icon ${props.classNamePrefix}__icon--arrow-down`}
+                        className={`${classNamePrefix}__icon ${classNamePrefix}__icon--arrow-down`}
                     ></span>
                 </div>
             </div>
@@ -269,10 +279,10 @@ export default function Select(props) {
 
     const selectSearch = () => {
         return (
-            <div className={`${props.classNamePrefix}__button`}>
+            <div className={`${classNamePrefix}__button`}>
                 <input
                     type="text"
-                    className={`${props.classNamePrefix}__search`}
+                    className={`${classNamePrefix}__search`}
                     autoFocus
                     value={search}
                     placeholder="Search..."
@@ -284,10 +294,10 @@ export default function Select(props) {
                     onFocus={() => setDropDownOn(true)}
                     onBlur={onBlur}
                 />
-                <div className={`${props.classNamePrefix}__arrow`}>
-                    {props.withCheck === "multiple" && (
+                <div className={`${classNamePrefix}__arrow`}>
+                    {withCheck === "multiple" && (
                         <button
-                            className={`${props.classNamePrefix}__btn`}
+                            className={`${classNamePrefix}__btn`}
                             onClick={() => setSelected([])}
                             onKeyDown={(e) => {
                                 if (e.keyCode === 13) {
@@ -298,12 +308,12 @@ export default function Select(props) {
                             onBlur={onBlur}
                         >
                             <span
-                                className={`${props.classNamePrefix}__icon ${props.classNamePrefix}__icon--clear`}
+                                className={`${classNamePrefix}__icon ${classNamePrefix}__icon--clear`}
                             ></span>
                         </button>
                     )}
                     <button
-                        className={`${props.classNamePrefix}__btn`}
+                        className={`${classNamePrefix}__btn`}
                         onClick={() => setDropDownOn(false)}
                         onKeyDown={(e) => {
                             if (e.keyCode === 13) {
@@ -314,7 +324,7 @@ export default function Select(props) {
                         onBlur={onBlur}
                     >
                         <span
-                            className={`${props.classNamePrefix}__icon ${props.classNamePrefix}__icon--x`}
+                            className={`${classNamePrefix}__icon ${classNamePrefix}__icon--x`}
                         ></span>
                     </button>
                 </div>
@@ -326,12 +336,12 @@ export default function Select(props) {
         <div
             ref={selectRef}
             onKeyDown={onKeyDown}
-            className={`${props.classNamePrefix} ${props.className}`}
+            className={`${classNamePrefix} ${className}`}
         >
             {dropDownOn ? (
                 <>
-                    {props.withSearch ? selectSearch() : selectButton()}
-                    <div className={`${props.classNamePrefix}__menu`}>
+                    {withSearch ? selectSearch() : selectButton()}
+                    <div className={`${classNamePrefix}__menu`}>
                         {generateOptions()}
                     </div>
                 </>
