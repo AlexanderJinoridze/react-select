@@ -52,7 +52,6 @@ function App() {
     const [selectedBreadNMeat, setSelectedBreadNMeat] = useState("");
 
     useEffect(() => {
-        console.clear();
         console.log("selectedFruits", selectedFruits);
         console.log("selectedVegies", selectedVegies);
         console.log("selectedBreadNMeat", selectedBreadNMeat);
