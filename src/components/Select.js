@@ -50,12 +50,17 @@ export default function Select(props) {
     };
 
     function onKeyDown(e) {
-        if (e.target !== this) {
-            return;
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        // console.log(this, e.target);
+
+        // if (e.target !== this) {
+        //     return;
+        // }
 
         if (e.key === "Enter") {
             if (props.withCheck) {
+                setDropDownOn(true);
                 onChange(highlightedOption);
             } else {
                 onClick(highlightedOption);
@@ -63,7 +68,6 @@ export default function Select(props) {
         }
 
         if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
             let index;
             let value;
             let currentIndex = Object.keys(options).indexOf(highlightedOption);
@@ -242,20 +246,7 @@ export default function Select(props) {
                 className={`${props.classNamePrefix}__button`}
                 tabIndex="0"
                 onMouseUp={() => setDropDownOn(!dropDownOn)}
-                onKeyDown={(e) => {
-                    // e.stopPropagation();
-
-                    if (dropDownOn) {
-                        if (e.key === "ArrowUp" || e.key === "ArrowDown")
-                            e.preventDefault();
-
-                        onKeyDown(e);
-                    }
-
-                    if (!(props.withCheck && dropDownOn)) {
-                        e.key === "Enter" && setDropDownOn(!dropDownOn);
-                    }
-                }}
+                onKeyDown={onKeyDown}
                 onBlur={onBlur}
             >
                 <div className={`${props.classNamePrefix}__value`}>
@@ -273,22 +264,20 @@ export default function Select(props) {
     const selectSearch = () => {
         return (
             <div className={`${props.classNamePrefix}__button`}>
-                <div>
-                    <input
-                        type="text"
-                        className={`${props.classNamePrefix}__search`}
-                        autoFocus
-                        value={search}
-                        placeholder="Search..."
-                        onChange={(e) => setSearch(e.target.value)}
-                        // onKeyDown={(e) => {
-                        //     if (e.key === "Enter" && !highlightedOption)
-                        //         e.stopPropagation();
-                        // }}
-                        onFocus={() => setDropDownOn(true)}
-                        onBlur={onBlur}
-                    />
-                </div>
+                <input
+                    type="text"
+                    className={`${props.classNamePrefix}__search`}
+                    autoFocus
+                    value={search}
+                    placeholder="Search..."
+                    onChange={(e) => setSearch(e.target.value)}
+                    // onKeyDown={(e) => {
+                    //     if (e.key === "Enter" && !highlightedOption)
+                    //         e.stopPropagation();
+                    // }}
+                    onFocus={() => setDropDownOn(true)}
+                    onBlur={onBlur}
+                />
                 <div className={`${props.classNamePrefix}__arrow`}>
                     {props.withCheck === "multiple" && (
                         <button
@@ -332,7 +321,7 @@ export default function Select(props) {
     return (
         <div
             ref={selectRef}
-            onKeyDown={onKeyDown}
+            // onKeyDown={onKeyDown}
             className={`${props.classNamePrefix} ${props.className}`}
         >
             {dropDownOn ? (
