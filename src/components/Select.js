@@ -16,53 +16,28 @@ export default function Select({
     withCheck,
     withSearch,
 }) {
-    const [uniqueID, setUniqueID] = useState();
+    // const [uniqueID, setUniqueID] = useState();
     const [dropDownOn, setDropDownOn] = useState(false);
     const [search, setSearch] = useState("");
-    const [options, setOptions] = useState({});
-    const [selected, setSelected] = useState("");
+    const [options, setOptions] = useState(initialOptions);
+    const [selected, setSelected] = useState(value);
     const [selectedItems, setSelectedItems] = useState("");
     const [highlightedOption, setHighlightedOption] = useState("");
 
     const selectRef = useRef(null);
-
-    const getSearchResults = () => {
-        let searchResults = {};
-
-        for (const [value, label] of Object.entries(initialOptions)) {
-            if (label.toLowerCase().includes(search.toLowerCase())) {
-                searchResults[value] = label;
-            }
-        }
-
-        return searchResults;
-    };
-
-    const getPlaceholder = () => {
-        if (withCheck) {
-            if (!selected.length) return placeholder;
-            if (withCheck === "single") return options[selected];
-
-            return selected.map((value) => initialOptions[value]).join(", ");
-        } else {
-            if (!selected) return placeholder;
-
-            return options[selected];
-        }
-    };
+    const uniqueID = useMemo(() => uuid(), []);
 
     const onClick = (value) => {
-        setSelected(value);
         setDropDownOn(false);
-
-        onChange(value);
+        setSelected(value);
+        // onChange(value);
     };
 
     const handleChange = (value) => {
         if (withCheck === "single") {
             selectRef.current.querySelectorAll(".select__button")[0].focus();
             setSelected(selected === value ? "" : value);
-            onChange(value);
+            // onChange(selected === value ? "" : value);
         } else if (withCheck === "multiple") {
             const newSelected = [...selected];
             selectRef.current.querySelectorAll(".select__search")[0].focus();
@@ -72,7 +47,7 @@ export default function Select({
                 newSelected.push(value);
             }
             setSelected(newSelected);
-            onChange(newSelected);
+            // onChange(newSelected);
         }
     };
 
@@ -83,15 +58,15 @@ export default function Select({
     };
 
     function onKeyDown(e) {
-        e.preventDefault();
-        e.stopPropagation();
+        // e.preventDefault();
+        // e.stopPropagation();
         // console.log(this, e.target);
 
         // if (e.target !== this) {
         //     return;
         // }
 
-        if (keyCode === 13) {
+        if (e.key === "Enter") {
             if (withCheck) {
                 handleChange(highlightedOption);
             } else {
@@ -100,6 +75,7 @@ export default function Select({
         }
 
         if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
             let index;
             let value;
             let currentIndex = Object.keys(options).indexOf(highlightedOption);
@@ -123,7 +99,7 @@ export default function Select({
 
             scrollIntoView(
                 selectRef.current.querySelector(
-                    `.${classNamePrefix}__menu [data-value=${value}]`
+                    `.${classNamePrefix}__menu #${value}`
                 ),
                 {
                     scrollMode: "if-needed",
@@ -145,6 +121,10 @@ export default function Select({
     //     setSelected(props.value);
     // }, [props.value]);
 
+    // useEffect(() => {
+    //     setSelected(value);
+    // }, [value]);
+
     useEffect(() => {
         const onClickOutside = (event) => {
             if (
@@ -162,17 +142,7 @@ export default function Select({
     }, []);
 
     useEffect(() => {
-        setSelected(value);
-    }, [value]);
-
-    useEffect(() => {
-        setOptions(
-            withCheck === "multiple" ? getSearchResults() : initialOptions
-        );
-    }, [initialOptions]);
-
-    useEffect(() => {
-        setSelectedItems(getPlaceholder());
+        onChange(selected);
     }, [selected]);
 
     useEffect(() => {
@@ -180,10 +150,29 @@ export default function Select({
     }, [dropDownOn]);
 
     useEffect(() => {
+        const getPlaceholder = () => {
+            if (withCheck) {
+                if (!selected.length) return placeholder;
+                if (withCheck === "single") return options[selected];
+
+                return selected
+                    .map((value) => initialOptions[value])
+                    .join(", ");
+            } else {
+                if (!selected) return placeholder;
+
+                return options[selected];
+            }
+        };
+
+        setSelectedItems(getPlaceholder());
+    }, [selected]);
+
+    useEffect(() => {
         const getSearchResults = () => {
             let searchResults = {};
 
-            for (const [value, label] of Object.entries(props.options)) {
+            for (const [value, label] of Object.entries(initialOptions)) {
                 if (label.toLowerCase().includes(search.toLowerCase())) {
                     searchResults[value] = label;
                 }
@@ -199,24 +188,34 @@ export default function Select({
         if (!Object.keys(options).length) {
             return (
                 <div className={`${classNamePrefix}__no-res`}>
-                    List is Empty
+                    <span>List is Empty</span>
                 </div>
             );
         }
 
-        if (withCheck) {
-            return Object.keys(options).map((value, index) => {
-                const label = options[value];
-                const labelID = `${uniqueID}__${value}`;
+        return Object.keys(options).map((value, index) => {
+            const label = options[value];
+            const labelID = `${uniqueID}__${value}`;
 
-                return (
+            const optionContent = customOption ? (
+                customOption(value, label)
+            ) : (
+                <div>{label}</div>
+            );
+
+            let template;
+
+            if (withCheck) {
+                template = (
                     <label
                         key={index}
-                        data-value={value}
+                        id={value}
                         className={classNames({
-                            [`${props.classNamePrefix}__menu-item`]: true,
-                            [`${props.classNamePrefix}__menu-item--highlighted`]:
+                            [`${classNamePrefix}__menu-item`]: true,
+                            [`${classNamePrefix}__menu-item--highlighted`]:
                                 value === highlightedOption,
+                            [`${classNamePrefix}__menu-item--selected`]:
+                                value === selected,
                         })}
                         onMouseEnter={() => setHighlightedOption(value)}
                         htmlFor={labelID}
@@ -232,41 +231,31 @@ export default function Select({
                             }
                             onChange={() => handleChange(value)}
                         />
-                        {customOption ? (
-                            customOption(value, label)
-                        ) : (
-                            <div>{label}</div>
-                        )}
+                        {optionContent}
                     </label>
                 );
-            });
-        } else {
-            return Object.keys(options).map((value, index) => {
-                const label = options[value];
-
-                return (
+            } else {
+                template = (
                     <div
                         key={index}
-                        data-value={value}
+                        id={value}
                         className={classNames({
-                            [`${props.classNamePrefix}__menu-item`]: true,
-                            [`${props.classNamePrefix}__menu-item--highlighted`]:
+                            [`${classNamePrefix}__menu-item`]: true,
+                            [`${classNamePrefix}__menu-item--highlighted`]:
                                 value === highlightedOption,
-                            [`${props.classNamePrefix}__menu-item--selected`]:
+                            [`${classNamePrefix}__menu-item--selected`]:
                                 value === selected,
                         })}
                         onMouseEnter={() => setHighlightedOption(value)}
                         onClick={() => onClick(value)}
                     >
-                        {customOption ? (
-                            customOption(value, label)
-                        ) : (
-                            <div>{label}</div>
-                        )}
+                        {optionContent}
                     </div>
                 );
-            });
-        }
+            }
+
+            return template;
+        });
     };
 
     const selectButton = () => {
@@ -275,20 +264,6 @@ export default function Select({
                 className={`${classNamePrefix}__button`}
                 tabIndex="0"
                 onMouseUp={() => setDropDownOn(!dropDownOn)}
-                onKeyDown={(e) => {
-                    e.stopPropagation();
-
-                    if (dropDownOn) {
-                        if (e.keyCode === 38 || e.keyCode === 40)
-                            e.preventDefault();
-
-                        onKeyDown(e);
-                    }
-
-                    if (!(withCheck && dropDownOn)) {
-                        e.keyCode === 13 && setDropDownOn(!dropDownOn);
-                    }
-                }}
                 onBlur={onBlur}
             >
                 <div className={`${classNamePrefix}__value`}>
@@ -313,10 +288,10 @@ export default function Select({
                     value={search}
                     placeholder="Search..."
                     onChange={(e) => setSearch(e.target.value)}
-                    // onKeyDown={(e) => {
-                    //     if (e.key === "Enter" && !highlightedOption)
-                    //         e.stopPropagation();
-                    // }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !highlightedOption)
+                            e.stopPropagation();
+                    }}
                     onFocus={() => setDropDownOn(true)}
                     onBlur={onBlur}
                 />
@@ -324,11 +299,15 @@ export default function Select({
                     {withCheck === "multiple" && (
                         <button
                             className={`${classNamePrefix}__btn`}
-                            onClick={() => setSelected([])}
+                            onClick={() => {
+                                setSelected([]);
+                                // onChange([]);
+                            }}
                             onKeyDown={(e) => {
+                                e.stopPropagation();
                                 if (e.key === "Enter") {
-                                    //e.stopPropagation();
                                     setSelected([]);
+                                    // onChange([]);
                                 }
                             }}
                             onBlur={onBlur}
@@ -342,8 +321,8 @@ export default function Select({
                         className={`${classNamePrefix}__btn`}
                         onClick={() => setDropDownOn(false)}
                         onKeyDown={(e) => {
+                            e.stopPropagation();
                             if (e.key === "Enter") {
-                                //e.stopPropagation();
                                 setDropDownOn(false);
                             }
                         }}
@@ -361,7 +340,19 @@ export default function Select({
     return (
         <div
             ref={selectRef}
-            onKeyDown={onKeyDown}
+            //onKeyDown={onKeyDown}
+            onKeyDown={(e) => {
+                if (dropDownOn) {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown")
+                        e.preventDefault();
+
+                    onKeyDown(e);
+                }
+
+                if (!(withCheck && dropDownOn)) {
+                    e.key === "Enter" && setDropDownOn(!dropDownOn);
+                }
+            }}
             className={`${classNamePrefix} ${className}`}
         >
             {dropDownOn ? (

@@ -47,9 +47,9 @@ const breadNMeat = {
 };
 
 function App() {
-    const [selectedFruits, setSelectedFruits] = useState("");
-    const [selectedVegies, setSelectedVegies] = useState([]);
-    const [selectedBreadNMeat, setSelectedBreadNMeat] = useState("");
+    const [selectedFruits, setSelectedFruits] = useState("strawberry");
+    const [selectedVegies, setSelectedVegies] = useState(["potato", "corn"]);
+    const [selectedBreadNMeat, setSelectedBreadNMeat] = useState("waffle");
 
     useEffect(() => {
         console.log("selectedFruits", selectedFruits);
