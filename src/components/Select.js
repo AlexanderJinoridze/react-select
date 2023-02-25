@@ -24,6 +24,7 @@ export default function Select({
 
     const selectRef = useRef(null);
     const selectButtonRef = useRef(null);
+
     const uniqueID = useMemo(() => uuid(), []);
 
     const handleClick = (value) => {
@@ -32,19 +33,22 @@ export default function Select({
     };
 
     const handleChange = (value) => {
+        let newSelected;
         selectButtonRef.current.focus();
 
         if (withCheck === "single") {
-            setSelected(selected === value ? "" : value);
+            newSelected = selected !== value ? value : "";
         } else if (withCheck === "multiple") {
-            const newSelected = [...selected];
+            newSelected = [...selected];
+
             if (newSelected.includes(value)) {
                 newSelected.splice(newSelected.indexOf(value), 1);
             } else {
                 newSelected.push(value);
             }
-            setSelected(newSelected);
         }
+
+        setSelected(newSelected);
     };
 
     const onBlur = (event) => {
@@ -63,9 +67,7 @@ export default function Select({
             } else {
                 handleClick(highlightedOption);
             }
-        }
-
-        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
             event.preventDefault();
             let index;
             let value;
@@ -138,7 +140,7 @@ export default function Select({
 
         setSelectedItems(getPlaceholder());
         onChange(selected);
-    }, [selected]);
+    }, [selected, initialOptions, onChange, options, placeholder, withCheck]);
 
     useEffect(() => {
         let searchResults = {};
@@ -151,41 +153,31 @@ export default function Select({
 
         setHighlightedOption(Object.keys(searchResults)[0]);
         setOptions(searchResults);
-    }, [search]);
+    }, [search, initialOptions]);
 
-    const generateOptions = () => {
-        if (!Object.keys(options).length) {
-            return (
-                <div className={`${classNamePrefix}__no-res`}>
-                    <span>List is Empty</span>
-                </div>
-            );
-        }
+    const generateOptions = () =>
+        Object.keys(options).length ? (
+            Object.keys(options).map((value, index) => {
+                const label = options[value];
+                const labelID = `${uniqueID}__${value}`;
+                const optionClass = classNames({
+                    [`${classNamePrefix}__menu-item`]: true,
+                    [`${classNamePrefix}__menu-item--highlighted`]:
+                        value === highlightedOption,
+                    [`${classNamePrefix}__menu-item--selected`]:
+                        value === selected,
+                });
+                const optionContent = customOption ? (
+                    customOption(value, label)
+                ) : (
+                    <div>{label}</div>
+                );
 
-        return Object.keys(options).map((value, index) => {
-            const label = options[value];
-            const labelID = `${uniqueID}__${value}`;
-
-            const optionContent = customOption ? (
-                customOption(value, label)
-            ) : (
-                <div>{label}</div>
-            );
-
-            let template;
-
-            if (withCheck) {
-                template = (
+                return withCheck ? (
                     <label
                         key={index}
                         id={value}
-                        className={classNames({
-                            [`${classNamePrefix}__menu-item`]: true,
-                            [`${classNamePrefix}__menu-item--highlighted`]:
-                                value === highlightedOption,
-                            [`${classNamePrefix}__menu-item--selected`]:
-                                value === selected,
-                        })}
+                        className={optionClass}
                         onMouseEnter={() => setHighlightedOption(value)}
                         htmlFor={labelID}
                     >
@@ -202,103 +194,92 @@ export default function Select({
                         />
                         {optionContent}
                     </label>
-                );
-            } else {
-                template = (
+                ) : (
                     <div
                         key={index}
                         id={value}
-                        className={classNames({
-                            [`${classNamePrefix}__menu-item`]: true,
-                            [`${classNamePrefix}__menu-item--highlighted`]:
-                                value === highlightedOption,
-                            [`${classNamePrefix}__menu-item--selected`]:
-                                value === selected,
-                        })}
+                        className={optionClass}
                         onMouseEnter={() => setHighlightedOption(value)}
                         onClick={() => handleClick(value)}
                     >
                         {optionContent}
                     </div>
                 );
-            }
+            })
+        ) : (
+            <div className={`${classNamePrefix}__no-res`}>
+                <span>List is Empty</span>
+            </div>
+        );
 
-            return template;
-        });
-    };
+    const selectButton = () => (
+        <div
+            ref={selectButtonRef}
+            tabIndex={0}
+            className={`${classNamePrefix}__button`}
+            onClick={() => setDropDownOn(!dropDownOn)}
+            onKeyDown={(event) => {
+                if (dropDownOn) {
+                    onKeyDown(event);
+                } else {
+                    event.key === "Enter" && setDropDownOn(!dropDownOn);
+                }
+            }}
+            onBlur={onBlur}
+        >
+            <div className={`${classNamePrefix}__value`}>
+                <span>{selectedItems}</span>
+            </div>
+            <div className={`${classNamePrefix}__arrow`}>
+                <span
+                    className={`${classNamePrefix}__icon ${classNamePrefix}__icon--arrow-down`}
+                ></span>
+            </div>
+        </div>
+    );
 
-    const selectButton = () => {
-        return (
-            <div
+    const selectSearch = () => (
+        <div className={`${classNamePrefix}__button`}>
+            <input
                 ref={selectButtonRef}
-                tabIndex={0}
-                className={`${classNamePrefix}__button`}
-                onClick={() => setDropDownOn(!dropDownOn)}
-                onKeyDown={(event) => {
-                    if (dropDownOn) {
-                        onKeyDown(event);
-                    } else {
-                        event.key === "Enter" && setDropDownOn(!dropDownOn);
-                    }
-                }}
+                type="text"
+                className={`${classNamePrefix}__search`}
+                autoFocus
+                value={search}
+                placeholder="Search..."
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => onKeyDown(event)}
+                onFocus={() => setDropDownOn(true)}
                 onBlur={onBlur}
-            >
-                <div className={`${classNamePrefix}__value`}>
-                    <span>{selectedItems}</span>
-                </div>
-                <div className={`${classNamePrefix}__arrow`}>
-                    <span
-                        className={`${classNamePrefix}__icon ${classNamePrefix}__icon--arrow-down`}
-                    ></span>
-                </div>
-            </div>
-        );
-    };
-
-    const selectSearch = () => {
-        return (
-            <div className={`${classNamePrefix}__button`}>
-                <input
-                    ref={selectButtonRef}
-                    type="text"
-                    className={`${classNamePrefix}__search`}
-                    autoFocus
-                    value={search}
-                    placeholder="Search..."
-                    onChange={(event) => setSearch(event.target.value)}
-                    onKeyDown={(event) => onKeyDown(event)}
-                    onFocus={() => setDropDownOn(true)}
+            />
+            <div className={`${classNamePrefix}__arrow`}>
+                <button
+                    className={`${classNamePrefix}__btn`}
+                    onClick={() => setSelected([])}
+                    onKeyDown={(event) =>
+                        event.key === "Enter" && setSelected([])
+                    }
                     onBlur={onBlur}
-                />
-                <div className={`${classNamePrefix}__arrow`}>
-                    <button
-                        className={`${classNamePrefix}__btn`}
-                        onClick={() => setSelected([])}
-                        onKeyDown={(event) =>
-                            event.key === "Enter" && setSelected([])
-                        }
-                        onBlur={onBlur}
-                    >
-                        <span
-                            className={`${classNamePrefix}__icon ${classNamePrefix}__icon--clear`}
-                        ></span>
-                    </button>
-                    <button
-                        className={`${classNamePrefix}__btn`}
-                        onClick={() => setDropDownOn(false)}
-                        onKeyDown={(event) =>
-                            event.key === "Enter" && setDropDownOn(false)
-                        }
-                        onBlur={onBlur}
-                    >
-                        <span
-                            className={`${classNamePrefix}__icon ${classNamePrefix}__icon--x`}
-                        ></span>
-                    </button>
-                </div>
+                >
+                    <span
+                        className={`${classNamePrefix}__icon ${classNamePrefix}__icon--clear`}
+                    ></span>
+                </button>
+                <button
+                    className={`${classNamePrefix}__btn`}
+                    onClick={() => setDropDownOn(false)}
+                    onKeyDown={(event) =>
+                        event.key === "Enter" && setDropDownOn(false)
+                    }
+                    onBlur={onBlur}
+                >
+                    <span
+                        className={`${classNamePrefix}__icon ${classNamePrefix}__icon--x`}
+                    ></span>
+                </button>
             </div>
-        );
-    };
+        </div>
+    );
 
     return (
         <div ref={selectRef} className={`${classNamePrefix} ${className}`}>
