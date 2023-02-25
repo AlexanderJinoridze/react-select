@@ -23,6 +23,7 @@ export default function Select({
     const [highlightedOption, setHighlightedOption] = useState("");
 
     const selectRef = useRef(null);
+    const selectButtonRef = useRef(null);
     const uniqueID = useMemo(() => uuid(), []);
 
     const handleClick = (value) => {
@@ -31,12 +32,12 @@ export default function Select({
     };
 
     const handleChange = (value) => {
+        selectButtonRef.current.focus();
+
         if (withCheck === "single") {
-            selectRef.current.querySelectorAll(".select__button")[0].focus();
             setSelected(selected === value ? "" : value);
         } else if (withCheck === "multiple") {
             const newSelected = [...selected];
-            selectRef.current.querySelectorAll(".select__search")[0].focus();
             if (newSelected.includes(value)) {
                 newSelected.splice(newSelected.indexOf(value), 1);
             } else {
@@ -229,6 +230,7 @@ export default function Select({
     const selectButton = () => {
         return (
             <div
+                ref={selectButtonRef}
                 tabIndex={0}
                 className={`${classNamePrefix}__button`}
                 onClick={() => setDropDownOn(!dropDownOn)}
@@ -257,6 +259,7 @@ export default function Select({
         return (
             <div className={`${classNamePrefix}__button`}>
                 <input
+                    ref={selectButtonRef}
                     type="text"
                     className={`${classNamePrefix}__search`}
                     autoFocus
