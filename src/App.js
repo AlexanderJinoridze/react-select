@@ -94,6 +94,7 @@ function App() {
                     onChange={(value) => setSelectedBreadNMeat(value)}
                     placeholder="Select Meat and Bread"
                     withCheck="single"
+                    withSearch
                 />
             </div>
         </div>

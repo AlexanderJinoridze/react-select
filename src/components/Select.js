@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
 import scrollIntoView from "scroll-into-view-if-needed";
 import classNames from "classnames";
-
 import { v4 as uuid } from "uuid";
 
 export default function Select({
@@ -16,7 +15,6 @@ export default function Select({
     withCheck,
     withSearch,
 }) {
-    // const [uniqueID, setUniqueID] = useState();
     const [dropDownOn, setDropDownOn] = useState(false);
     const [search, setSearch] = useState("");
     const [options, setOptions] = useState(initialOptions);
@@ -27,17 +25,15 @@ export default function Select({
     const selectRef = useRef(null);
     const uniqueID = useMemo(() => uuid(), []);
 
-    const onClick = (value) => {
+    const handleClick = (value) => {
         setDropDownOn(false);
         setSelected(value);
-        // onChange(value);
     };
 
     const handleChange = (value) => {
         if (withCheck === "single") {
             selectRef.current.querySelectorAll(".select__button")[0].focus();
             setSelected(selected === value ? "" : value);
-            // onChange(selected === value ? "" : value);
         } else if (withCheck === "multiple") {
             const newSelected = [...selected];
             selectRef.current.querySelectorAll(".select__search")[0].focus();
@@ -47,43 +43,37 @@ export default function Select({
                 newSelected.push(value);
             }
             setSelected(newSelected);
-            // onChange(newSelected);
         }
     };
 
-    const onBlur = (e) => {
-        if (e.relatedTarget && !selectRef.current.contains(e.relatedTarget)) {
+    const onBlur = (event) => {
+        if (
+            event.relatedTarget &&
+            !selectRef.current.contains(event.relatedTarget)
+        ) {
             setDropDownOn(false);
         }
     };
 
-    function onKeyDown(e) {
-        // e.preventDefault();
-        // e.stopPropagation();
-        // console.log(this, e.target);
-
-        // if (e.target !== this) {
-        //     return;
-        // }
-
-        if (e.key === "Enter") {
+    const onKeyDown = (event) => {
+        if (event.key === "Enter") {
             if (withCheck) {
                 handleChange(highlightedOption);
             } else {
-                onClick(highlightedOption);
+                handleClick(highlightedOption);
             }
         }
 
-        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            event.preventDefault();
             let index;
             let value;
             let currentIndex = Object.keys(options).indexOf(highlightedOption);
             let lastIndex = Object.keys(options).length - 1;
 
-            if (e.key === "ArrowUp") {
+            if (event.key === "ArrowUp") {
                 index = currentIndex - 1;
-            } else if (e.key === "ArrowDown") {
+            } else if (event.key === "ArrowDown") {
                 index = currentIndex + 1;
             }
 
@@ -95,8 +85,6 @@ export default function Select({
 
             value = Object.keys(options)[index];
 
-            setHighlightedOption(value);
-
             scrollIntoView(
                 selectRef.current.querySelector(
                     `.${classNamePrefix}__menu #${value}`
@@ -107,23 +95,9 @@ export default function Select({
                     inline: "nearest",
                 }
             );
+            setHighlightedOption(value);
         }
-    }
-
-    // useEffect(() => {
-    //     console.log("PROPOPTIONS");
-    //     setOptions(
-    //         props.withCheck === "multiple" ? getSearchResults() : props.options
-    //     );
-    // }, [props.options]);
-
-    // useEffect(() => {
-    //     setSelected(props.value);
-    // }, [props.value]);
-
-    // useEffect(() => {
-    //     setSelected(value);
-    // }, [value]);
+    };
 
     useEffect(() => {
         const onClickOutside = (event) => {
@@ -140,10 +114,6 @@ export default function Select({
             document.removeEventListener("click", onClickOutside, true);
         };
     }, []);
-
-    useEffect(() => {
-        onChange(selected);
-    }, [selected]);
 
     useEffect(() => {
         setSearch("");
@@ -166,22 +136,20 @@ export default function Select({
         };
 
         setSelectedItems(getPlaceholder());
+        onChange(selected);
     }, [selected]);
 
     useEffect(() => {
-        const getSearchResults = () => {
-            let searchResults = {};
+        let searchResults = {};
 
-            for (const [value, label] of Object.entries(initialOptions)) {
-                if (label.toLowerCase().includes(search.toLowerCase())) {
-                    searchResults[value] = label;
-                }
+        for (const [value, label] of Object.entries(initialOptions)) {
+            if (label.toLowerCase().includes(search.toLowerCase())) {
+                searchResults[value] = label;
             }
+        }
 
-            return searchResults;
-        };
-
-        setOptions(getSearchResults());
+        setHighlightedOption(Object.keys(searchResults)[0]);
+        setOptions(searchResults);
     }, [search]);
 
     const generateOptions = () => {
@@ -222,8 +190,8 @@ export default function Select({
                     >
                         <input
                             id={labelID}
-                            tabIndex="-1"
                             type="checkbox"
+                            tabIndex={-1}
                             checked={
                                 withCheck === "single"
                                     ? selected === value
@@ -247,7 +215,7 @@ export default function Select({
                                 value === selected,
                         })}
                         onMouseEnter={() => setHighlightedOption(value)}
-                        onClick={() => onClick(value)}
+                        onClick={() => handleClick(value)}
                     >
                         {optionContent}
                     </div>
@@ -261,9 +229,16 @@ export default function Select({
     const selectButton = () => {
         return (
             <div
+                tabIndex={0}
                 className={`${classNamePrefix}__button`}
-                tabIndex="0"
-                onMouseUp={() => setDropDownOn(!dropDownOn)}
+                onClick={() => setDropDownOn(!dropDownOn)}
+                onKeyDown={(event) => {
+                    if (dropDownOn) {
+                        onKeyDown(event);
+                    } else {
+                        event.key === "Enter" && setDropDownOn(!dropDownOn);
+                    }
+                }}
                 onBlur={onBlur}
             >
                 <div className={`${classNamePrefix}__value`}>
@@ -287,45 +262,30 @@ export default function Select({
                     autoFocus
                     value={search}
                     placeholder="Search..."
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && !highlightedOption)
-                            e.stopPropagation();
-                    }}
+                    onChange={(event) => setSearch(event.target.value)}
+                    onKeyDown={(event) => onKeyDown(event)}
                     onFocus={() => setDropDownOn(true)}
                     onBlur={onBlur}
                 />
                 <div className={`${classNamePrefix}__arrow`}>
-                    {withCheck === "multiple" && (
-                        <button
-                            className={`${classNamePrefix}__btn`}
-                            onClick={() => {
-                                setSelected([]);
-                                // onChange([]);
-                            }}
-                            onKeyDown={(e) => {
-                                e.stopPropagation();
-                                if (e.key === "Enter") {
-                                    setSelected([]);
-                                    // onChange([]);
-                                }
-                            }}
-                            onBlur={onBlur}
-                        >
-                            <span
-                                className={`${classNamePrefix}__icon ${classNamePrefix}__icon--clear`}
-                            ></span>
-                        </button>
-                    )}
+                    <button
+                        className={`${classNamePrefix}__btn`}
+                        onClick={() => setSelected([])}
+                        onKeyDown={(event) =>
+                            event.key === "Enter" && setSelected([])
+                        }
+                        onBlur={onBlur}
+                    >
+                        <span
+                            className={`${classNamePrefix}__icon ${classNamePrefix}__icon--clear`}
+                        ></span>
+                    </button>
                     <button
                         className={`${classNamePrefix}__btn`}
                         onClick={() => setDropDownOn(false)}
-                        onKeyDown={(e) => {
-                            e.stopPropagation();
-                            if (e.key === "Enter") {
-                                setDropDownOn(false);
-                            }
-                        }}
+                        onKeyDown={(event) =>
+                            event.key === "Enter" && setDropDownOn(false)
+                        }
                         onBlur={onBlur}
                     >
                         <span
@@ -338,23 +298,7 @@ export default function Select({
     };
 
     return (
-        <div
-            ref={selectRef}
-            //onKeyDown={onKeyDown}
-            onKeyDown={(e) => {
-                if (dropDownOn) {
-                    if (e.key === "ArrowUp" || e.key === "ArrowDown")
-                        e.preventDefault();
-
-                    onKeyDown(e);
-                }
-
-                if (!(withCheck && dropDownOn)) {
-                    e.key === "Enter" && setDropDownOn(!dropDownOn);
-                }
-            }}
-            className={`${classNamePrefix} ${className}`}
-        >
+        <div ref={selectRef} className={`${classNamePrefix} ${className}`}>
             {dropDownOn ? (
                 <>
                     {withSearch ? selectSearch() : selectButton()}
