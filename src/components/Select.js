@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import scrollIntoView from "scroll-into-view-if-needed";
 import classNames from "classnames";
-import { v4 as uuid } from "uuid";
+// import { v4 as uuid } from "uuid";
 
 export default function Select({
     options: initialOptions,
@@ -27,7 +27,7 @@ export default function Select({
     const selectRef = useRef(null);
     const selectButtonRef = useRef(null);
 
-    const uniqueID = useMemo(() => uuid(), []);
+    // const uniqueID = useMemo(() => uuid(), []);
 
     const handleChange = (value) => {
         let newSelected = [...selected];
@@ -122,8 +122,15 @@ export default function Select({
                 ? selected.map((value) => initialOptions[value]).join(", ")
                 : placeholder
         );
-        onChange(selected.length > 1 ? selected : selected[0]);
-    }, [selected, initialOptions, onChange, placeholder]);
+
+        onChange(
+            selected.length > 1 || withCheck === "multiple"
+                ? selected
+                : selected.length === 0
+                ? ""
+                : selected[0]
+        );
+    }, [selected, initialOptions, onChange, placeholder, withCheck]);
 
     useEffect(() => {
         let searchResults = {};
@@ -142,7 +149,7 @@ export default function Select({
         Object.keys(options).length ? (
             Object.keys(options).map((value, index) => {
                 const label = options[value];
-                const labelID = `${uniqueID}__${value}`;
+                // const labelID = `${uniqueID}__${value}`;
                 const optionClass = classNames({
                     [`${classNamePrefix}__menu-item`]: true,
                     [`${classNamePrefix}__menu-item--highlighted`]:
@@ -156,24 +163,25 @@ export default function Select({
                     <div>{label}</div>
                 );
 
-                return withCheck ? (
-                    <label
-                        key={index}
-                        id={value}
-                        className={optionClass}
-                        onMouseEnter={() => setHighlightedOption(value)}
-                        htmlFor={labelID}
-                    >
-                        <input
-                            id={labelID}
-                            type="checkbox"
-                            tabIndex={-1}
-                            checked={selected.includes(value)}
-                            onChange={() => handleChange(value)}
-                        />
-                        {optionContent}
-                    </label>
-                ) : (
+                // return withCheck ? (
+                //     <label
+                //         key={index}
+                //         id={value}
+                //         className={optionClass}
+                //         onMouseEnter={() => setHighlightedOption(value)}
+                //         htmlFor={labelID}
+                //     >
+                //         <input
+                //             id={labelID}
+                //             type="checkbox"
+                //             tabIndex={-1}
+                //             checked={selected.includes(value)}
+                //             onChange={() => handleChange(value)}
+                //         />
+                //         {optionContent}
+                //     </label>
+                // ) : (
+                return (
                     <div
                         key={index}
                         id={value}
@@ -184,6 +192,7 @@ export default function Select({
                         {optionContent}
                     </div>
                 );
+                //);
             })
         ) : (
             <div className={`${classNamePrefix}__no-res`}>
