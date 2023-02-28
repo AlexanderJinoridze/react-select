@@ -18,7 +18,9 @@ export default function Select({
     const [dropDownOn, setDropDownOn] = useState(false);
     const [search, setSearch] = useState("");
     const [options, setOptions] = useState(initialOptions);
-    const [selected, setSelected] = useState(value);
+    const [selected, setSelected] = useState(
+        Array.isArray(value) ? value : [value]
+    );
     const [selectedItems, setSelectedItems] = useState("");
     const [highlightedOption, setHighlightedOption] = useState("");
 
@@ -27,25 +29,21 @@ export default function Select({
 
     const uniqueID = useMemo(() => uuid(), []);
 
-    const handleClick = (value) => {
-        setDropDownOn(false);
-        setSelected(value);
-    };
-
     const handleChange = (value) => {
-        let newSelected;
+        let newSelected = [...selected];
         selectButtonRef.current.focus();
 
         if (withCheck === "single") {
-            newSelected = selected !== value ? value : "";
+            newSelected = selected[0] !== value ? [value] : [];
         } else if (withCheck === "multiple") {
-            newSelected = [...selected];
-
             if (newSelected.includes(value)) {
                 newSelected.splice(newSelected.indexOf(value), 1);
             } else {
                 newSelected.push(value);
             }
+        } else if (!withCheck) {
+            setDropDownOn(false);
+            newSelected = [value];
         }
 
         setSelected(newSelected);
@@ -62,11 +60,7 @@ export default function Select({
 
     const onKeyDown = (event) => {
         if (event.key === "Enter") {
-            if (withCheck) {
-                handleChange(highlightedOption);
-            } else {
-                handleClick(highlightedOption);
-            }
+            handleChange(highlightedOption);
         } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
             event.preventDefault();
             let index;
@@ -123,24 +117,13 @@ export default function Select({
     }, [dropDownOn]);
 
     useEffect(() => {
-        const getPlaceholder = () => {
-            if (withCheck) {
-                if (!selected.length) return placeholder;
-                if (withCheck === "single") return options[selected];
-
-                return selected
-                    .map((value) => initialOptions[value])
-                    .join(", ");
-            } else {
-                if (!selected) return placeholder;
-
-                return options[selected];
-            }
-        };
-
-        setSelectedItems(getPlaceholder());
-        onChange(selected);
-    }, [selected, initialOptions, onChange, options, placeholder, withCheck]);
+        setSelectedItems(
+            selected.length
+                ? selected.map((value) => initialOptions[value]).join(", ")
+                : placeholder
+        );
+        onChange(selected.length > 1 ? selected : selected[0]);
+    }, [selected, initialOptions, onChange, placeholder]);
 
     useEffect(() => {
         let searchResults = {};
@@ -165,7 +148,7 @@ export default function Select({
                     [`${classNamePrefix}__menu-item--highlighted`]:
                         value === highlightedOption,
                     [`${classNamePrefix}__menu-item--selected`]:
-                        value === selected,
+                        selected.includes(value),
                 });
                 const optionContent = customOption ? (
                     customOption(value, label)
@@ -185,11 +168,7 @@ export default function Select({
                             id={labelID}
                             type="checkbox"
                             tabIndex={-1}
-                            checked={
-                                withCheck === "single"
-                                    ? selected === value
-                                    : selected.includes(value)
-                            }
+                            checked={selected.includes(value)}
                             onChange={() => handleChange(value)}
                         />
                         {optionContent}
@@ -200,7 +179,7 @@ export default function Select({
                         id={value}
                         className={optionClass}
                         onMouseEnter={() => setHighlightedOption(value)}
-                        onClick={() => handleClick(value)}
+                        onClick={() => handleChange(value)}
                     >
                         {optionContent}
                     </div>
