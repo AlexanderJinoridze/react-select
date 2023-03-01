@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import scrollIntoView from "scroll-into-view-if-needed";
 import classNames from "classnames";
-// import { v4 as uuid } from "uuid";
 
 export default function Select({
     options: initialOptions,
@@ -16,7 +15,7 @@ export default function Select({
     withSearch,
 }) {
     const [dropDownOn, setDropDownOn] = useState(false);
-    const [search, setSearch] = useState("");
+    // const [search, setSearch] = useState("");
     const [options, setOptions] = useState(initialOptions);
     const [selected, setSelected] = useState(
         Array.isArray(value) ? value : [value]
@@ -112,9 +111,7 @@ export default function Select({
         };
     }, []);
 
-    useEffect(() => {
-        setSearch("");
-    }, [dropDownOn]);
+    //useEffect(() => {}, [dropDownOn]);
 
     useEffect(() => {
         setSelectedItems(
@@ -132,73 +129,55 @@ export default function Select({
         );
     }, [selected, initialOptions, onChange, placeholder, withCheck]);
 
-    useEffect(() => {
-        let searchResults = {};
+    // useEffect(() => {
+    //     let searchResults = {};
 
-        for (const [value, label] of Object.entries(initialOptions)) {
-            if (label.toLowerCase().includes(search.toLowerCase())) {
-                searchResults[value] = label;
-            }
+    //     for (const [value, label] of Object.entries(initialOptions)) {
+    //         if (label.toLowerCase().includes(search.toLowerCase())) {
+    //             searchResults[value] = label;
+    //         }
+    //     }
+
+    //     setHighlightedOption(Object.keys(searchResults)[0]);
+    //     setOptions(searchResults);
+    // }, [search, initialOptions]);
+
+    const generateOptions = () => {
+        const optionsList = Object.keys(options);
+        if (!optionsList.length) {
+            return (
+                <div className={`${classNamePrefix}__no-res`}>
+                    <span>List is Empty</span>
+                </div>
+            );
         }
 
-        setHighlightedOption(Object.keys(searchResults)[0]);
-        setOptions(searchResults);
-    }, [search, initialOptions]);
+        return optionsList.map((value, index) => {
+            const label = options[value];
 
-    const generateOptions = () =>
-        Object.keys(options).length ? (
-            Object.keys(options).map((value, index) => {
-                const label = options[value];
-                // const labelID = `${uniqueID}__${value}`;
-                const optionClass = classNames({
-                    [`${classNamePrefix}__menu-item`]: true,
-                    [`${classNamePrefix}__menu-item--highlighted`]:
-                        value === highlightedOption,
-                    [`${classNamePrefix}__menu-item--selected`]:
-                        selected.includes(value),
-                });
-                const optionContent = customOption ? (
-                    customOption(value, label)
-                ) : (
-                    <div>{label}</div>
-                );
-
-                // return withCheck ? (
-                //     <label
-                //         key={index}
-                //         id={value}
-                //         className={optionClass}
-                //         onMouseEnter={() => setHighlightedOption(value)}
-                //         htmlFor={labelID}
-                //     >
-                //         <input
-                //             id={labelID}
-                //             type="checkbox"
-                //             tabIndex={-1}
-                //             checked={selected.includes(value)}
-                //             onChange={() => handleChange(value)}
-                //         />
-                //         {optionContent}
-                //     </label>
-                // ) : (
-                return (
-                    <div
-                        key={index}
-                        id={value}
-                        className={optionClass}
-                        onMouseEnter={() => setHighlightedOption(value)}
-                        onClick={() => handleChange(value)}
-                    >
-                        {optionContent}
-                    </div>
-                );
-                //);
-            })
-        ) : (
-            <div className={`${classNamePrefix}__no-res`}>
-                <span>List is Empty</span>
-            </div>
-        );
+            return (
+                <div
+                    key={index}
+                    id={value}
+                    className={classNames({
+                        [`${classNamePrefix}__menu-item`]: true,
+                        [`${classNamePrefix}__menu-item--highlighted`]:
+                            value === highlightedOption,
+                        [`${classNamePrefix}__menu-item--selected`]:
+                            selected.includes(value),
+                    })}
+                    onMouseEnter={() => setHighlightedOption(value)}
+                    onClick={() => handleChange(value)}
+                >
+                    {customOption ? (
+                        customOption(value, label)
+                    ) : (
+                        <span>{label}</span>
+                    )}
+                </div>
+            );
+        });
+    };
 
     const selectButton = () => (
         <div
@@ -233,9 +212,26 @@ export default function Select({
                 type="text"
                 className={`${classNamePrefix}__search`}
                 autoFocus
-                value={search}
+                // value={search}
                 placeholder="Search..."
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                    let searchResults = {};
+
+                    for (const [value, label] of Object.entries(
+                        initialOptions
+                    )) {
+                        if (
+                            label
+                                .toLowerCase()
+                                .includes(event.target.value.toLowerCase())
+                        ) {
+                            searchResults[value] = label;
+                        }
+                    }
+
+                    setHighlightedOption(Object.keys(searchResults)[0]);
+                    setOptions(searchResults);
+                }}
                 onKeyDown={(event) => onKeyDown(event)}
                 onFocus={() => setDropDownOn(true)}
                 onBlur={onBlur}
