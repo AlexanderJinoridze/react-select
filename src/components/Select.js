@@ -104,7 +104,9 @@ export default function Select({
     };
   }, []);
 
-  //useEffect(() => {}, [dropDownOn]);
+  useEffect(() => {
+    setSearch("");
+  }, [dropDownOn]);
 
   useEffect(() => {
     setSelectedItems(
